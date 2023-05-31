@@ -7,6 +7,7 @@ class UserModel {
   String userImage;
   String createAt;
   String chatingWith;
+  String userId;
 
   UserModel({
     required this.userName,
@@ -15,9 +16,11 @@ class UserModel {
     required this.userEmail,
     required this.createAt,
     required this.chatingWith,
+    required this.userId,
   });
   factory UserModel.fromMap(DocumentSnapshot<Object?> map) {
     return UserModel(
+        userId: map["userId"],
         userName: map['userName'],
         userPassword: map['userPassword'],
         userImage: map['userImage'],
@@ -27,6 +30,7 @@ class UserModel {
   }
   Map<String, dynamic> toMap() {
     return {
+      'userId': userId,
       'userName': userName,
       'userPassword': userPassword,
       'userImage': userImage,

@@ -1,6 +1,7 @@
 // ignore_for_file: unnecessary_null_comparison
 
 
+import 'package:chat_app_course/models/user_models.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -8,7 +9,8 @@ import '../models/chat_model.dart';
 import 'chat_details.dart';
 
 class ChatsPage extends StatefulWidget {
-  const ChatsPage({super.key});
+  final UserModel userModel;
+  const ChatsPage({super.key,required this.userModel});
 
   @override
   State<ChatsPage> createState() => _ChatsPageState();

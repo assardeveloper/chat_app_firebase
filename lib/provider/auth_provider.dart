@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app_course/models/user_models.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class AuthProvider with ChangeNotifier {
   bool isLoginLoadding = false;
@@ -55,14 +56,6 @@ class AuthProvider with ChangeNotifier {
     context, {
     required File imageFile,
   }) async {
-    UserModel userModel = UserModel(
-      userEmail: signupEmailController.text,
-      userPassword: signupPasswordController.text,
-      userImage: "",
-      userName: signupName.text,
-      createAt: DateTime.now().millisecondsSinceEpoch.toString(),
-      chatingWith: "",
-    );
     try {
       isSignupLoadding = true;
       notifyListeners();
@@ -70,6 +63,15 @@ class AuthProvider with ChangeNotifier {
           await _auth.createUserWithEmailAndPassword(
         email: signupEmailController.text,
         password: signupPasswordController.text,
+      );
+      UserModel userModel = UserModel(
+        userEmail: signupEmailController.text,
+        userPassword: signupPasswordController.text,
+        userImage: "",
+        userId: userCredential.user!.uid,
+        userName: signupName.text,
+        createAt: DateTime.now().millisecondsSinceEpoch.toString(),
+        chatingWith: "",
       );
       if (userCredential.user!.uid.isNotEmpty) {
         await FirebaseFirestore.instance
@@ -131,7 +133,37 @@ class AuthProvider with ChangeNotifier {
         .get();
     if (userData.exists) {
       userModel = UserModel.fromMap(userData);
-      print(userModel!.userName);
+      notifyListeners();
+    }
+  }
+
+  bool isProfileLoadding = false;
+
+  updateUserProfile(
+      {required String name,
+      required String email,
+      required File imageFile}) async {
+    try {
+      isProfileLoadding = true;
+      notifyListeners();
+      User? user = FirebaseAuth.instance.currentUser;
+      String userImage = await uploadImage(imageFile, user!.uid);
+      await FirebaseFirestore.instance
+          .collection("Users")
+          .doc(user.uid)
+          .update({
+        "userEmail": email,
+        "userName": name,
+        "userImage": userImage,
+      }).then(
+        (value) async {
+          isProfileLoadding = false;
+          notifyListeners();
+          Fluttertoast.showToast(msg: "Profile Updated");
+        },
+      );
+    } catch (error) {
+      isProfileLoadding = false;
       notifyListeners();
     }
   }

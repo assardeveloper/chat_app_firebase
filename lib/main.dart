@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:chat_app_course/provider/chat_provider.dart';
 import 'package:chat_app_course/screen/auth_pages/login_page.dart';
 import 'package:chat_app_course/screen/chat/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -31,11 +32,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => AuthProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>  ChatProvider(),
+        )
+      ],
       child: MaterialApp(
         theme: ThemeData(
-          primaryColor:  const Color(0xffE187B0),
+          primaryColor: const Color(0xffE187B0),
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xffE187B0)),
         ),
         home: StreamBuilder(

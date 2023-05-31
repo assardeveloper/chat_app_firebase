@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:chat_app_course/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -33,10 +34,12 @@ class _ProfilePageState extends State<ProfilePage> {
     AuthProvider authProviderInit =
         Provider.of<AuthProvider>(context, listen: false);
     authProviderInit.getCurrentUserData();
-    profileEmailController =
-        TextEditingController(text: authProviderInit.userModel!.userEmail);
-    profileNameController =
-        TextEditingController(text: authProviderInit.userModel!.userName);
+    if (authProviderInit.userModel != null) {
+      profileEmailController =
+          TextEditingController(text: authProviderInit.userModel!.userEmail);
+      profileNameController =
+          TextEditingController(text: authProviderInit.userModel!.userName);
+    }
 
     super.initState();
   }
@@ -59,14 +62,15 @@ class _ProfilePageState extends State<ProfilePage> {
                   onTap: () => {
                     getImageFormGallary(),
                   },
-                  child: authProvider!.userModel!.userImage == ""
+                  child: xFile != null
                       ? CircleAvatar(
                           radius: 50,
                           backgroundImage: FileImage(File(xFile!.path)),
                         )
                       : CircleAvatar(
                           radius: 50,
-                          backgroundImage: NetworkImage(authProvider!.userModel!.userImage),
+                          backgroundImage:
+                              NetworkImage(authProvider!.userModel!.userImage),
                         ),
                 ),
                 const SizedBox(
@@ -105,11 +109,24 @@ class _ProfilePageState extends State<ProfilePage> {
                     height: 53,
                     width: double.infinity,
                     child: MaterialButton(
-                      onPressed: () {
-                        authProvider!.getCurrentUserData();
+                      onPressed: () async {
+                        if(xFile!=null ){
+                          await authProvider!.updateUserProfile(
+                          email: profileEmailController!.text,
+                          imageFile: File(xFile!.path),
+                          name: profileNameController!.text,
+                        );
+                        }else{
+                          Fluttertoast.showToast(msg: "image null");
+                        }
+                        
                       },
                       color: Theme.of(context).primaryColor,
-                      child: const Text("Update Profile"),
+                      child: authProvider!.isProfileLoadding == false
+                          ? const Text("Update Profile")
+                          : const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                     ),
                   ),
                 ),

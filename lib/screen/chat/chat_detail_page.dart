@@ -1,9 +1,12 @@
 // ignore_for_file: unused_element
 
+import 'package:chat_app_course/models/user_models.dart';
 import 'package:flutter/material.dart';
 
 class ChatDetailPage extends StatefulWidget {
-  const ChatDetailPage({super.key});
+  final UserModel userModel;
+
+  const ChatDetailPage({super.key, required this.userModel});
 
   @override
   _ChatDetailPageState createState() => _ChatDetailPageState();
@@ -34,9 +37,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 const SizedBox(
                   width: 2,
                 ),
-                const CircleAvatar(
+                 CircleAvatar(
                   backgroundImage: NetworkImage(
-                      "https://pbs.twimg.com/profile_images/1580000950672101377/FVZ8Juh6_400x400.jpg"),
+                     widget. userModel.userImage),
                   maxRadius: 20,
                 ),
                 const SizedBox(
@@ -47,9 +50,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      const Text(
-                        "Kriss Benwat",
-                        style: TextStyle(
+                       Text(
+                       widget. userModel.userName,
+                        style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(

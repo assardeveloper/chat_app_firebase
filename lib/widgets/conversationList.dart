@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:chat_app_course/models/user_models.dart';
 import 'package:flutter/material.dart';
 
 import '../screen/chat/chat_detail_page.dart';
@@ -26,7 +27,17 @@ class _ConversationListState extends State<ConversationList> {
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return const ChatDetailPage();
+          return  ChatDetailPage(
+          userModel: UserModel(
+            chatingWith: "",
+            createAt: "",
+            userEmail: "",
+            userId: "",
+            userImage: widget.imageUrl,
+            userName: widget.name,
+            userPassword: "",
+          ),
+          );
         }));
       },
       child: Container(

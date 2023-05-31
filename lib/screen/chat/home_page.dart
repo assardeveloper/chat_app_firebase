@@ -1,10 +1,12 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:chat_app_course/provider/chat_provider.dart';
 import 'package:chat_app_course/screen/auth_pages/login_page.dart';
 import 'package:chat_app_course/screen/profile/profile.dart';
 import 'package:chat_app_course/widgets/conversationList.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -15,7 +17,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   @override
+  void initState() {
+    ChatProvider chatProvider = Provider.of(context, listen: false);
+    chatProvider.getHomeUsers();
+    // TODO: implement initState
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ChatProvider chatProvider = Provider.of(context);
+
     return Scaffold(
       appBar: AppBar(
           centerTitle: true,
@@ -71,21 +83,24 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            ListView.builder(
-              itemCount: 6,
-              shrinkWrap: true,
-              padding: const EdgeInsets.only(top: 16),
-              physics: const NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                return const ConversationList(
-                  name: "assar",
-                  messageText: "hi i'm flutter dev",
-                  imageUrl:
-                      "https://pbs.twimg.com/profile_images/1580000950672101377/FVZ8Juh6_400x400.jpg",
-                  time: "4:20 PM",
-                );
-              },
-            ),
+            chatProvider.usersList.isEmpty
+                ? const Center(
+                    child: Text("No Data"),
+                  )
+                : ListView.builder(
+                    itemCount: chatProvider.usersList.length,
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.only(top: 16),
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return ConversationList(
+                        name: chatProvider.usersList[index].userName,
+                        messageText: "hi i'm flutter dev",
+                        imageUrl: chatProvider.usersList[index].userImage,
+                        time: "4:20 PM",
+                      );
+                    },
+                  ),
           ],
         ),
       ),
