@@ -1,20 +1,262 @@
-// ignore_for_file: unused_element
+// ignore_for_file: unused_element, library_private_types_in_public_api
 
-import 'package:chat_app_course/models/user_models.dart';
+import 'package:chat_app_course/models/chat_model.dart';
+import 'package:chat_app_course/provider/auth_provider.dart';
+import 'package:chat_app_course/provider/chat_provider.dart';
+import 'package:chat_app_course/screen/chat/full_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 class ChatDetailPage extends StatefulWidget {
-  final UserModel userModel;
+  final String userid;
+  final String userImage;
+  final String userName;
+  final String status;
 
-  const ChatDetailPage({super.key, required this.userModel});
+  const ChatDetailPage(
+      {super.key,
+      required this.status,
+      required this.userImage,
+      required this.userid,
+      required this.userName});
 
   @override
   _ChatDetailPageState createState() => _ChatDetailPageState();
 }
 
-class _ChatDetailPageState extends State<ChatDetailPage> {
+class _ChatDetailPageState extends State<ChatDetailPage>
+    with WidgetsBindingObserver {
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  String groupChatId = "";
+  TextEditingController messageController = TextEditingController();
+  String timeAgoCustom(DateTime d) {
+    // <-- Custom method Time Show  (Display Example  ==> 'Today 7:00 PM')     // WhatsApp Time Show Status Shimila
+    Duration diff = DateTime.now().difference(d);
+    if (diff.inDays > 365) {
+      return "${(diff.inDays / 365).floor()} ${(diff.inDays / 365).floor() == 1 ? "year" : "years"} ago";
+    }
+    if (diff.inDays > 30) {
+      return "${(diff.inDays / 30).floor()} ${(diff.inDays / 30).floor() == 1 ? "month" : "months"} ago";
+    }
+    if (diff.inDays > 7) {
+      return "${(diff.inDays / 7).floor()} ${(diff.inDays / 7).floor() == 1 ? "week" : "weeks"} ago";
+    }
+    if (diff.inDays > 0) return DateFormat.E().add_jm().format(d);
+    if (diff.inHours > 0) return "Today ${DateFormat('jm').format(d)}";
+    if (diff.inMinutes > 0) {
+      return "${diff.inMinutes} ${diff.inMinutes == 1 ? "minute" : "minutes"} ago";
+    }
+    return "just now";
+  }
+
+  readLocal() async {
+    // prefs = await SharedPreferences.getInstance();
+
+    if (currentUser!.uid.hashCode <= widget.userid.hashCode) {
+      groupChatId = '${currentUser!.uid}-${widget.userid}';
+    } else {
+      groupChatId = '${widget.userid}-${currentUser!.uid}';
+    }
+
+    FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUser!.uid)
+        .update({'chatingWith': widget.userid});
+
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    AuthProvider authProvider = Provider.of(context, listen: false);
+    readLocal();
+    authProvider.getCurrentUserData();
+    WidgetsBinding.instance.addObserver(this);
+
+    super.initState();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      FirebaseFirestore.instance
+          .collection("Users")
+          .doc(currentUser!.uid)
+          .update({
+        "status": "Online",
+      });
+    } else {
+      FirebaseFirestore.instance
+          .collection("Users")
+          .doc(currentUser!.uid)
+          .update({
+        "status": "Ofline",
+      });
+    }
+  }
+
+  _showChats(ChatModel chatModel) {
+    String time = timeAgoCustom(
+      DateTime.fromMillisecondsSinceEpoch(
+        int.parse(chatModel.time),
+      ),
+    );
+
+    if (chatModel.uid == FirebaseAuth.instance.currentUser!.uid) {
+      return chatModel.type == "text"
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.only(
+                    left: 14,
+                    right: 14,
+                  ),
+                  child: Align(
+                    alignment: (Alignment.topRight),
+                    child: Container(
+                      constraints:
+                          const BoxConstraints(maxWidth: 250.0, minWidth: 50),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: (Colors.blue[200]),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        chatModel.message,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 16, bottom: 20),
+                  child: Text(
+                    time,
+                  ),
+                ),
+              ],
+            )
+          : InkWell(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => FullImage(
+                    image: chatModel.message,
+                  ),
+                ));
+              },
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: Image.network(
+                          chatModel.message,
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16, bottom: 20),
+                        child: Text(
+                          time,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+    } else {
+      return chatModel.type == "text"
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  constraints:
+                      const BoxConstraints(maxWidth: 250.0, minWidth: 50),
+                  padding: const EdgeInsets.only(
+                    left: 14,
+                    right: 14,
+                  ),
+                  child: Align(
+                    alignment: (Alignment.topLeft),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        color: (Colors.grey.shade200),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        chatModel.message,
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.only(left: 16, right: 14, bottom: 10),
+                  child: Text(
+                    time,
+                  ),
+                ),
+              ],
+            )
+          : InkWell(
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => FullImage(
+                    image: chatModel.message,
+                  ),
+                ));
+              },
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: Image.network(
+                          chatModel.message,
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16, bottom: 20),
+                        child: Text(
+                          time,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    ChatProvider chatProvider = Provider.of(context);
+    AuthProvider authProvider = Provider.of(
+      context,
+    );
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -37,9 +279,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 const SizedBox(
                   width: 2,
                 ),
-                 CircleAvatar(
-                  backgroundImage: NetworkImage(
-                     widget. userModel.userImage),
+                CircleAvatar(
+                  backgroundImage: NetworkImage(widget.userImage),
                   maxRadius: 20,
                 ),
                 const SizedBox(
@@ -50,8 +291,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                       Text(
-                       widget. userModel.userName,
+                      Text(
+                        widget.userName,
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w600),
                       ),
@@ -59,7 +300,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         height: 6,
                       ),
                       Text(
-                        "Online",
+                        widget.status,
                         style: TextStyle(
                             color: Colors.grey.shade600, fontSize: 13),
                       ),
@@ -84,36 +325,40 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       ),
       body: Stack(
         children: <Widget>[
-          ListView.builder(
-            itemCount: 4,
-            shrinkWrap: true,
-            padding: const EdgeInsets.only(top: 10, bottom: 10),
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) {
-              return Container(
-                padding: const EdgeInsets.only(
-                    left: 14, right: 14, top: 10, bottom: 10),
-                child: Align(
-                  alignment: ("receiver" == "receiver"
-                      ? Alignment.topLeft
-                      : Alignment.topRight),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: ("receiver" == "receiver"
-                          ? Colors.grey.shade200
-                          : Colors.blue[200]),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: const Text(
-                      "hi guys i having 4 years experience",
-                      style: TextStyle(fontSize: 15),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection("chating")
+                  .doc(groupChatId)
+                  .collection(groupChatId)
+                  .orderBy("time", descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: Text("No Chats"),
+                  );
+                } else {
+                  return ListView.builder(
+                    itemCount: snapshot.data!.docs.length,
+                    shrinkWrap: true,
+                    reverse: true,
+                    padding: const EdgeInsets.only(top: 10, bottom: 10),
+                    itemBuilder: (context, index) {
+                      ChatModel chatModel =
+                          ChatModel.fromMap(snapshot.data!.docs[index]);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _showChats(chatModel),
+                          const SizedBox(
+                            height: 40,
+                          )
+                        ],
+                      );
+                    },
+                  );
+                }
+              }),
           Align(
             alignment: Alignment.bottomLeft,
             child: Container(
@@ -131,9 +376,35 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                             return Wrap(
                               children: <Widget>[
                                 ListTile(
-                                    leading: const Icon(Icons.image),
-                                    title: const Text('Image'),
-                                    onTap: () => {}),
+                                  leading: const Icon(Icons.image),
+                                  title: const Text('Image'),
+                                  onTap: () async {
+                                    XFile? pickedImage = await ImagePicker()
+                                        .pickImage(source: ImageSource.gallery);
+                                    if (pickedImage!.path.isNotEmpty) {
+                                      chatProvider.sendMessage(
+                                        groupId: groupChatId,
+                                        id: FirebaseAuth
+                                            .instance.currentUser!.uid,
+                                        message: "",
+                                        type: "image",
+                                        name: authProvider.userModel!.userName,
+                                      );
+                                    }
+                                    String imageUrl = await chatProvider
+                                        .uploadImage(pickedImage);
+                                    if (imageUrl.isNotEmpty) {
+                                      chatProvider.sendMessage(
+                                        groupId: groupChatId,
+                                        id: FirebaseAuth
+                                            .instance.currentUser!.uid,
+                                        message: imageUrl,
+                                        type: "image",
+                                        name: authProvider.userModel!.userName,
+                                      );
+                                    }
+                                  },
+                                ),
                                 ListTile(
                                     leading: const Icon(Icons.videocam),
                                     title: const Text('Video'),
@@ -164,9 +435,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   const SizedBox(
                     width: 15,
                   ),
-                  const Expanded(
+                  Expanded(
                     child: TextField(
-                      decoration: InputDecoration(
+                      controller: messageController,
+                      decoration: const InputDecoration(
                           hintText: "Write message...",
                           hintStyle: TextStyle(color: Colors.black54),
                           border: InputBorder.none),
@@ -176,7 +448,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     width: 15,
                   ),
                   FloatingActionButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      if (messageController.text.isNotEmpty) {
+                        chatProvider.sendMessage(
+                          groupId: groupChatId,
+                          id: FirebaseAuth.instance.currentUser!.uid,
+                          message: messageController.text,
+                          type: "text",
+                          name: authProvider.userModel!.userName,
+                        );
+                        messageController.clear();
+                      }
+                    },
                     backgroundColor: Colors.blue,
                     elevation: 0,
                     child: const Icon(

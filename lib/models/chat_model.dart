@@ -1,44 +1,31 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ChatModel {
-  String image;
-  String name;
-  String lastMessage;
-  bool isOnline;
-  bool isSelected;
-  DateTime lastOnline;
+  final String name;
+  final String message;
+  final String type;
+  final String id;
+  final String time;
+  final String uid;
 
   ChatModel({
-    required this.image,
+    required this.uid,
     required this.name,
-    required this.lastMessage,
-    required this.isOnline,
-    required this.isSelected,
-    required this.lastOnline,
+    required this.type,
+    required this.message,
+    required this.id,
+    required this.time,
   });
-}
 
-List<ChatModel> chatData = [
-  ChatModel(
-    image: 'images/woman.jpeg',
-    name: 'John Doe',
-    lastMessage: 'Hello, how are you?',
-    isOnline: true,
-    isSelected: false,
-    lastOnline: DateTime.now(),
-  ),
-  ChatModel(
-    image: 'images/men.jpg',
-    name: 'Jane Smith',
-    lastMessage: 'I will be there in 5 minutes.',
-    isOnline: false,
-    isSelected: false,
-    lastOnline: DateTime.now(),
-  ),
-  ChatModel(
-    image: 'images/1.png',
-    name: 'Obaid',
-    lastMessage: 'I will be there in 5 minutes.',
-    isOnline: false,
-    isSelected: false,
-    lastOnline: DateTime.now(),
-  ),
-];
+  factory ChatModel.fromMap(DocumentSnapshot<Object?> map) {
+    return ChatModel(
+      name: map["name"],
+      id: map['id'],
+      message: map['message'],
+      type: map['type'],
+      time: map['time'],
+      uid: map["userId"],
+    );
+  }
+  
+}

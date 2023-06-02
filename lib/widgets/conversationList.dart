@@ -1,6 +1,5 @@
 // ignore_for_file: library_private_types_in_public_api
 
-import 'package:chat_app_course/models/user_models.dart';
 import 'package:flutter/material.dart';
 
 import '../screen/chat/chat_detail_page.dart';
@@ -9,14 +8,18 @@ class ConversationList extends StatefulWidget {
   final String name;
   final String messageText;
   final String imageUrl;
+  final String status;
+  final String userId;
   final String time;
-  const ConversationList(
-      {super.key,
-      required this.name,
-      required this.messageText,
-      required this.imageUrl,
-      required this.time,
-      });
+  const ConversationList({
+    super.key,
+    required this.name,
+    required this.userId,
+    required this.status,
+    required this.messageText,
+    required this.imageUrl,
+    required this.time,
+  });
   @override
   _ConversationListState createState() => _ConversationListState();
 }
@@ -27,16 +30,11 @@ class _ConversationListState extends State<ConversationList> {
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return  ChatDetailPage(
-          userModel: UserModel(
-            chatingWith: "",
-            createAt: "",
-            userEmail: "",
-            userId: "",
+          return ChatDetailPage(
             userImage: widget.imageUrl,
             userName: widget.name,
-            userPassword: "",
-          ),
+            userid: widget.userId,
+            status: widget.status,
           );
         }));
       },
@@ -71,9 +69,9 @@ class _ConversationListState extends State<ConversationList> {
                           Text(
                             widget.messageText,
                             style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                               ),
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ],
                       ),
@@ -85,8 +83,8 @@ class _ConversationListState extends State<ConversationList> {
             Text(
               widget.time,
               style: const TextStyle(
-                  fontSize: 12,
-                 ),
+                fontSize: 12,
+              ),
             ),
           ],
         ),

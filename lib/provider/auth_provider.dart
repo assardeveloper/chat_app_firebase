@@ -72,6 +72,7 @@ class AuthProvider with ChangeNotifier {
         userName: signupName.text,
         createAt: DateTime.now().millisecondsSinceEpoch.toString(),
         chatingWith: "",
+        status: "",
       );
       if (userCredential.user!.uid.isNotEmpty) {
         await FirebaseFirestore.instance

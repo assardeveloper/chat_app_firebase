@@ -1,5 +1,6 @@
 // ignore_for_file: library_private_types_in_public_api
 
+import 'package:chat_app_course/models/user_models.dart';
 import 'package:chat_app_course/provider/chat_provider.dart';
 import 'package:chat_app_course/screen/auth_pages/login_page.dart';
 import 'package:chat_app_course/screen/profile/profile.dart';
@@ -16,17 +17,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  @override
-  void initState() {
-    ChatProvider chatProvider = Provider.of(context, listen: false);
-    chatProvider.getHomeUsers();
-    // TODO: implement initState
-    super.initState();
-  }
+  String search = "";
+  List<UserModel> searchList = [];
 
   @override
   Widget build(BuildContext context) {
     ChatProvider chatProvider = Provider.of(context);
+    chatProvider.getHomeUsers();
 
     return Scaffold(
       appBar: AppBar(
@@ -66,6 +63,12 @@ class _HomePageState extends State<HomePage> {
             Padding(
               padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
               child: TextField(
+                onChanged: (value) async {
+                  setState(() {
+                    search = value;
+                    searchList = chatProvider.searchBar(value);
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: "Search...",
                   hintStyle: TextStyle(color: Colors.grey.shade600),
@@ -88,16 +91,18 @@ class _HomePageState extends State<HomePage> {
                     child: Text("No Data"),
                   )
                 : ListView.builder(
-                    itemCount: chatProvider.usersList.length,
+                    itemCount: search==""?  chatProvider.usersList.length:searchList.length,
                     shrinkWrap: true,
                     padding: const EdgeInsets.only(top: 16),
                     physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (context, index) {
                       return ConversationList(
-                        name: chatProvider.usersList[index].userName,
+                        name: search==""? chatProvider.usersList[index].userName : searchList[index].userName ,
                         messageText: "hi i'm flutter dev",
-                        imageUrl: chatProvider.usersList[index].userImage,
+                        imageUrl: search==""? chatProvider.usersList[index].userImage : searchList[index].userImage ,
                         time: "4:20 PM",
+                        userId: chatProvider.usersList[index].userId ,
+                        status: chatProvider.usersList[index].status ,
                       );
                     },
                   ),
