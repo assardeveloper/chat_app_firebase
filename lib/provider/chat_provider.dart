@@ -1,45 +1,11 @@
 import 'dart:io';
 
-import 'package:chat_app_course/models/user_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 class ChatProvider with ChangeNotifier {
-  List<UserModel> usersList = [];
-  getHomeUsers() async {
-    List<UserModel> newList = [];
-
-    UserModel? userModel;
-    String uid = FirebaseAuth.instance.currentUser!.uid;
-    QuerySnapshot data =
-        await FirebaseFirestore.instance.collection("Users").get();
-    for (var element in data.docs) {
-      if (element.exists) {
-        if (element.get("userId") != uid) {
-          userModel = UserModel.fromMap(element);
-          newList.add(userModel);
-        }
-      }
-    }
-    usersList = newList;
-    notifyListeners();
-  }
-
-  List<UserModel> searchBar(String query) {
-    List<UserModel> seachList = [];
-    seachList = usersList
-        .where(
-          (element) =>
-              element.userName.toLowerCase().contains(query) ||
-              element.userName.toUpperCase().contains(query),
-        )
-        .toList();
-    return seachList;
-  }
-
   void sendMessage({
     required String message,
     required String type,
@@ -67,11 +33,10 @@ class ChatProvider with ChangeNotifier {
 
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  Future<String> uploadImage(XFile pickedImage) async {
+  Future<String> uploadImage(File pickedImage) async {
     try {
-     
-
-      final Reference storageReference = _storage.ref().child('chats/${DateTime.now()}');
+      final Reference storageReference =
+          _storage.ref().child('chats/${DateTime.now()}');
 
       final UploadTask uploadTask =
           storageReference.putFile(File(pickedImage.path));
@@ -82,6 +47,22 @@ class ChatProvider with ChangeNotifier {
       return imageUrl;
     } catch (error) {
       return '';
+    }
+  }
+
+  Stream<QuerySnapshot> getAllUsers(int limit, String query) {
+    if (query == "") {
+      return FirebaseFirestore.instance
+          .collection("Users")
+          .limit(limit)
+          .where("userId", isNotEqualTo: FirebaseAuth.instance.currentUser!.uid)
+          .snapshots();
+    } else {
+      return FirebaseFirestore.instance
+          .collection("Users")
+          .limit(limit)
+          .where("userName", isEqualTo: query)
+          .snapshots();
     }
   }
 }

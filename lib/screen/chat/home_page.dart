@@ -18,12 +18,30 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String search = "";
-  List<UserModel> searchList = [];
+  final ScrollController listScrollController = ScrollController();
+  int limit = 10;
+  @override
+  void initState() {
+    listScrollController.addListener(scrollListener);
+
+    // TODO: implement initState
+    super.initState();
+  }
+
+  void scrollListener() {
+    if (listScrollController.offset >=
+            listScrollController.position.maxScrollExtent &&
+        !listScrollController.position.outOfRange) {
+
+      setState(() {
+        limit += 20;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     ChatProvider chatProvider = Provider.of(context);
-    chatProvider.getHomeUsers();
 
     return Scaffold(
       appBar: AppBar(
@@ -64,10 +82,15 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
               child: TextField(
                 onChanged: (value) async {
-                  setState(() {
-                    search = value;
-                    searchList = chatProvider.searchBar(value);
-                  });
+                  if (value.isNotEmpty) {
+                    setState(() {
+                      search = value;
+                    });
+                  } else {
+                    setState(() {
+                      search = "";
+                    });
+                  }
                 },
                 decoration: InputDecoration(
                   hintText: "Search...",
@@ -86,26 +109,35 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            chatProvider.usersList.isEmpty
-                ? const Center(
-                    child: Text("No Data"),
-                  )
-                : ListView.builder(
-                    itemCount: search==""?  chatProvider.usersList.length:searchList.length,
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.only(top: 16),
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      return ConversationList(
-                        name: search==""? chatProvider.usersList[index].userName : searchList[index].userName ,
-                        messageText: "hi i'm flutter dev",
-                        imageUrl: search==""? chatProvider.usersList[index].userImage : searchList[index].userImage ,
-                        time: "4:20 PM",
-                        userId: chatProvider.usersList[index].userId ,
-                        status: chatProvider.usersList[index].status ,
-                      );
-                    },
-                  ),
+            StreamBuilder(
+                stream: chatProvider.getAllUsers(limit, search),
+                builder: (context, snapshots) {
+                  if (snapshots.hasData) {
+                    return ListView.builder(
+                      controller: listScrollController,
+                      itemCount: snapshots.data!.docs.length,
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.only(top: 16),
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        UserModel userModel =
+                            UserModel.fromMap(snapshots.data!.docs[index]);
+                        return ConversationList(
+                          name: userModel.userName,
+                          messageText: "hi i'm flutter dev",
+                          imageUrl: userModel.userImage,
+                          time: "4:20 PM",
+                          userId: userModel.userId,
+                          status: userModel.status,
+                        );
+                      },
+                    );
+                  } else {
+                    return const Center(
+                      child: Text("No Users"),
+                    );
+                  }
+                }),
           ],
         ),
       ),

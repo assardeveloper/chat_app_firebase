@@ -1,15 +1,21 @@
 // ignore_for_file: unused_element, library_private_types_in_public_api
 
+import 'dart:io';
+
 import 'package:chat_app_course/models/chat_model.dart';
 import 'package:chat_app_course/provider/auth_provider.dart';
 import 'package:chat_app_course/provider/chat_provider.dart';
 import 'package:chat_app_course/screen/chat/full_image.dart';
+import 'package:chat_app_course/screen/chat/video_play.dart';
+import 'package:chat_app_course/screen/chat/voice_recoder.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:voice_message_package/voice_message_package.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String userid;
@@ -141,41 +147,65 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 ),
               ],
             )
-          : InkWell(
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => FullImage(
-                    image: chatModel.message,
-                  ),
-                ));
-              },
-              child: SizedBox(
-                width: double.infinity,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: Image.network(
-                          chatModel.message,
-                          height: 200,
-                          width: 200,
-                          fit: BoxFit.cover,
-                        ),
+          : chatModel.type == "image"
+              ? InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => FullImage(
+                        image: chatModel.message,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 16, bottom: 20),
-                        child: Text(
-                          time,
-                        ),
+                    ));
+                  },
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: Image.network(
+                              chatModel.message,
+                              height: 200,
+                              width: 200,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 16, top: 8),
+                            child: Text(
+                              time,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            );
+                )
+              : chatModel.type == "video"
+                  ? Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: VideoPaly(
+                        videoUrl: chatModel.message,
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: VoiceMessage(
+                            duration: const Duration(seconds: 4),
+
+                            audioSrc: chatModel.message,
+                            played: true, // To show played badge or not.
+                            me: true, // Set message side.
+                            onPlay: () {}, // Do something when voice played.
+                          ),
+                        ),
+                      ],
+                    );
     } else {
       return chatModel.type == "text"
           ? Column(
@@ -212,41 +242,59 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                 ),
               ],
             )
-          : InkWell(
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => FullImage(
-                    image: chatModel.message,
+          : chatModel.type == "image"
+              ? InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (context) => FullImage(
+                        image: chatModel.message,
+                      ),
+                    ));
+                  },
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(30),
+                            child: Image.network(
+                              chatModel.message,
+                              height: 200,
+                              width: 200,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 16, top: 8),
+                            child: Text(
+                              time,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ));
-              },
-              child: SizedBox(
-                width: double.infinity,
-                child: Padding(
+                )
+              : Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: Image.network(
-                          chatModel.message,
-                          height: 200,
-                          width: 200,
-                          fit: BoxFit.cover,
-                        ),
+                      VideoPaly(
+                        videoUrl: chatModel.message,
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(right: 16, bottom: 20),
+                        padding: const EdgeInsets.only(right: 16, top: 8),
                         child: Text(
                           time,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            );
+                );
     }
   }
 
@@ -381,18 +429,10 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                                   onTap: () async {
                                     XFile? pickedImage = await ImagePicker()
                                         .pickImage(source: ImageSource.gallery);
-                                    if (pickedImage!.path.isNotEmpty) {
-                                      chatProvider.sendMessage(
-                                        groupId: groupChatId,
-                                        id: FirebaseAuth
-                                            .instance.currentUser!.uid,
-                                        message: "",
-                                        type: "image",
-                                        name: authProvider.userModel!.userName,
-                                      );
-                                    }
+
                                     String imageUrl = await chatProvider
-                                        .uploadImage(pickedImage);
+                                        .uploadImage(File(pickedImage!.path));
+
                                     if (imageUrl.isNotEmpty) {
                                       chatProvider.sendMessage(
                                         groupId: groupChatId,
@@ -408,7 +448,34 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                                 ListTile(
                                     leading: const Icon(Icons.videocam),
                                     title: const Text('Video'),
-                                    onTap: () => {}),
+                                    onTap: () async {
+                                      FilePickerResult? result =
+                                          await FilePicker.platform.pickFiles(
+                                        type: FileType.video,
+                                      );
+
+                                      if (result != null) {
+                                        XFile file =
+                                            XFile(result.files.single.path!);
+
+                                        String videoUrl = await chatProvider
+                                            .uploadImage(File(file.path));
+
+                                        if (videoUrl.isNotEmpty) {
+                                          chatProvider.sendMessage(
+                                            groupId: groupChatId,
+                                            id: FirebaseAuth
+                                                .instance.currentUser!.uid,
+                                            message: videoUrl,
+                                            type: "video",
+                                            name: authProvider
+                                                .userModel!.userName,
+                                          );
+                                        }
+                                      } else {
+                                        // User canceled the picker
+                                      }
+                                    }),
                                 ListTile(
                                   leading: const Icon(Icons.insert_drive_file),
                                   title: const Text('File'),
@@ -446,6 +513,18 @@ class _ChatDetailPageState extends State<ChatDetailPage>
                   ),
                   const SizedBox(
                     width: 15,
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => VoiceRecoder(
+                          groupId: groupChatId,
+                          currentUserId: FirebaseAuth.instance.currentUser!.uid,
+                          userName: authProvider.userModel!.userName,
+                        ),
+                      ));
+                    },
+                    child: const Icon(Icons.keyboard_voice_sharp),
                   ),
                   FloatingActionButton(
                     onPressed: () async {
